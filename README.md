@@ -1,5 +1,6 @@
-# Tools
-Tools for streamers, YouTubers, and alike for sharing screen (uses tampermonkey)
+# Authors
+Enowy (me) Author, chat GTP 3.5/chat GTP 4 (co-author), Github Copilot (formatter/debugger)
+
 # READ ME
 This is a zip of scripts that could be helpful to some people in the catagories above, 
 so please do follow the guidelines:
