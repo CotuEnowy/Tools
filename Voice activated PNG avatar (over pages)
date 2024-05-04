@@ -1,0 +1,91 @@
+// ==UserScript==
+// @name         Web PNG Tuber
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  Moves an image up slightly when speaking and aligns it to the bottom right corner, with dynamic images switched by number keys. Add your own base64 images for indexes 0 to 9.
+// @author       Enowy
+// @match        https://*/*
+// @match        http://*/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    let speakingThreshold = 0.05; // Adjust this threshold as needed for sensitivity
+    let isSpeaking = false;
+    let currentImageIndex = 0;
+
+    // Add your own base64 images here for indexes 0 to 9
+    let images = [
+        "data:image/png;base64,YourBase64ImageHereForIndex0",
+        "data:image/png;base64,YourBase64ImageHereForIndex1",
+        "data:image/png;base64,YourBase64ImageHereForIndex2",
+        "data:image/png;base64,YourBase64ImageHereForIndex3",
+        "data:image/png;base64,YourBase64ImageHereForIndex4",
+        "data:image/png;base64,YourBase64ImageHereForIndex5",
+        "data:image/png;base64,YourBase64ImageHereForIndex6",
+        "data:image/png;base64,YourBase64ImageHereForIndex7",
+        "data:image/png;base64,YourBase64ImageHereForIndex8",
+        "data:image/png;base64,YourBase64ImageHereForIndex9"
+    ];
+
+    let imageEl = document.createElement("img");
+    imageEl.src = images[currentImageIndex];
+    imageEl.style.position = "fixed";
+    imageEl.style.bottom = "0";
+    imageEl.style.right = "0";
+    imageEl.style.zIndex = "9999"; // Set the z-index to a high value
+    imageEl.style.transition = "transform 0.2s";
+    document.body.appendChild(imageEl);
+
+    async function startVolumeMeasurement() {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const audioContext = new AudioContext();
+        const mediaStreamAudioSourceNode = audioContext.createMediaStreamSource(stream);
+        const analyserNode = audioContext.createAnalyser();
+        mediaStreamAudioSourceNode.connect(analyserNode);
+
+        const pcmData = new Float32Array(analyserNode.fftSize);
+        const onFrame = () => {
+            analyserNode.getFloatTimeDomainData(pcmData);
+            let sumSquares = 0.0;
+            for (const amplitude of pcmData) { sumSquares += amplitude * amplitude; }
+            let volume = Math.sqrt(sumSquares / pcmData.length);
+
+            if (volume > speakingThreshold && !isSpeaking) {
+                isSpeaking = true;
+                moveImageUp();
+            } else if (volume <= speakingThreshold && isSpeaking) {
+                isSpeaking = false;
+                alignImageBottom();
+            }
+
+            window.requestAnimationFrame(onFrame);
+        };
+        window.requestAnimationFrame(onFrame);
+    }
+
+    function moveImageUp() {
+        imageEl.style.transform = "translateY(-10px)";
+    }
+
+    function alignImageBottom() {
+        imageEl.style.transform = "translateY(0)";
+    }
+
+    function switchImage(index) {
+        currentImageIndex = index;
+        if (currentImageIndex < 0) currentImageIndex = 0;
+        if (currentImageIndex >= images.length) currentImageIndex = images.length - 1;
+        imageEl.src = images[currentImageIndex];
+    }
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key >= "0" && event.key <= "9") {
+            switchImage(parseInt(event.key));
+        }
+    });
+
+    startVolumeMeasurement();
+})();
